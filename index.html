@@ -7,6 +7,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>年賀状AR（MindAR）</title>
+
+  <!-- ★① Three.js を新規追加（必須） -->
+  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
+
+  <!-- ★② MindAR（Three.js依存） -->
+  <script src="./mindar-image-three.prod.js"></script>
+
   <style>
     html, body { margin:0; height:100%; overflow:hidden; font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
     #ui {
@@ -25,13 +32,7 @@
     #hint { font-size: 14px; line-height: 1.35; opacity: .95; }
     #story { margin-top: 6px; font-size: 16px; font-weight: 600; }
   </style>
-
-  <!-- ★ Three.js を新規追加（必須） -->
-  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
-  
-  <!-- MindAR (Three.js) CDN -->
-  <script src="./mindar-image-three.prod.js"></script>
-</head>
+</head>  
 <body>
   <div id="badge">📮 年賀状AR</div>
   <div id="ui">
@@ -150,6 +151,7 @@
   </script>
 </body>
 </html>
+
 
 
 
