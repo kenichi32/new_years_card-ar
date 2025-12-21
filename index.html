@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>年賀状AR（MindAR）</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
+    #ui {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 12px 14px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.65));
+      color: #fff;
+      pointer-events: none;
+    }
+    #badge {
+      position: fixed; top: 10px; left: 10px;
+      background: rgba(0,0,0,0.55); color:#fff;
+      padding: 8px 10px; border-radius: 12px;
+      font-size: 13px;
+    }
+    #hint { font-size: 14px; line-height: 1.35; opacity: .95; }
+    #story { margin-top: 6px; font-size: 16px; font-weight: 600; }
+  </style>
+
+  <!-- MindAR (Three.js) CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+</head>
+<body>
+  <div id="badge">📮 年賀状AR</div>
+  <div id="ui">
+    <div id="hint">カメラを年賀状の絵にかざしてください</div>
+    <div id="story"></div>
+  </div>
+
+  <!-- iOS対策：インライン再生＆ミュート開始（タップで音ONなどに発展可） -->
+  <video id="storyVideo" src="./story.mp4" playsinline muted loop preload="auto" style="display:none"></video>
+
+  <script>
+    const storyEl = document.getElementById("story");
+    const hintEl = document.getElementById("hint");
+    const storyVideo = document.getElementById("storyVideo");
+
+    // 物語テキスト例（検出したら切り替える）
+    const STORY_LINES = [
+      "第一章：あけましておめでとう。小さな門の向こうで、光る獅子が目を覚ます。",
+      "第二章：あなたが見つめるたび、雪の粒が言葉になって舞い上がる。",
+      "第三章：最後に“福”の印が浮かび、今年の合図を鳴らす。"
+    ];
+    let chapter = 0;
+    let chapterTimer = null;
+
+    function startStorySequence() {
+      chapter = 0;
+      storyEl.textContent = STORY_LINES[chapter];
+      hintEl.textContent = "絵を見続けると物語が進みます";
+
+      // 動画を再生（iOSは自動再生制約があるので muted で開始）
+      storyVideo.currentTime = 0;
+      storyVideo.play().catch(()=>{ /* 自動再生できない時は無視 */ });
+
+      clearInterval(chapterTimer);
+      chapterTimer = setInterval(() => {
+        chapter++;
+        if (chapter >= STORY_LINES.length) {
+          clearInterval(chapterTimer);
+          chapterTimer = null;
+          return;
+        }
+        storyEl.textContent = STORY_LINES[chapter];
+      }, 5000);
+    }
+
+    function stopStorySequence() {
+      hintEl.textContent = "カメラを年賀状の絵にかざしてください";
+      storyEl.textContent = "";
+      clearInterval(chapterTimer);
+      chapterTimer = null;
+      storyVideo.pause();
+    }
+
+    async function main() {
+      // MindAR セットアップ
+      const { MindARThree } = window.MINDAR.IMAGE.THREE;
+      const mindarThree = new MindARThree({
+        container: document.body,
+        imageTargetSrc: "./targets.mind",   // ★ここが年賀状の認識データ
+        maxTrack: 1,                        // 同時認識はまず1でOK
+        uiScanning: true,
+        uiLoading: true,
+      });
+
+      const { renderer, scene, camera } = mindarThree;
+
+      // ライト
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      // ターゲット(0番)にアンカー
+      const anchor = mindarThree.addAnchor(0);
+
+      // 1) 動画を絵の上に“板”として貼る（動画のARオーバーレイ）
+      //    story.mp4 が無い場合はこのブロックをコメントアウトしてください
+      const videoTexture = new THREE.VideoTexture(storyVideo);
+      const planeGeo = new THREE.PlaneGeometry(1.0, 0.5625); // 16:9
+      const planeMat = new THREE.MeshBasicMaterial({ map: videoTexture, transparent: true });
+      const videoPlane = new THREE.Mesh(planeGeo, planeMat);
+      videoPlane.position.set(0, 0.1, 0); // 少し上に
+      anchor.group.add(videoPlane);
+
+      // 2) “きらきら”っぽい簡易エフェクト（球をふわふわさせる）
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 24, 24),
+        new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.15 })
+      );
+      orb.position.set(0.35, 0.25, 0);
+      anchor.group.add(orb);
+
+      // 検出イベント
+      anchor.onTargetFound = () => {
+        startStorySequence();
+      };
+      anchor.onTargetLost = () => {
+        stopStorySequence();
+      };
+
+      // 開始
+      await mindarThree.start();
+
+      // レンダーループ
+      renderer.setAnimationLoop(() => {
+        const t = performance.now() * 0.001;
+        orb.position.y = 0.25 + Math.sin(t * 2.0) * 0.03;
+        orb.position.x = 0.35 + Math.cos(t * 1.5) * 0.02;
+        orb.rotation.y += 0.02;
+        renderer.render(scene, camera);
+      });
+    }
+
+    main().catch((e) => {
+      alert("起動に失敗しました: " + e);
+      console.error(e);
+    });
+  </script>
+</body>
+</html>
