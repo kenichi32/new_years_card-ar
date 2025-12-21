@@ -1,85 +1,17 @@
 <!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  >
-  <title>年賀状AR</title>
-
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif;
-    }
-
-    #hint {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      padding: 12px;
-      text-align: center;
-      color: #fff;
-      background: linear-gradient(transparent, rgba(0,0,0,0.7));
-      font-size: 14px;
-      z-index: 10;
-      pointer-events: none;
-    }
-  </style>
-</head>
-
+<html>
 <body>
-  <div id="hint">年賀状の絵にカメラをかざしてください</div>
-
-  <!-- ★ ここからが AR 本体 -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.152.2/build/three.module.js";
-    import { MindARThree } from "https://unpkg.com/mind-ar@1.2.5/dist/mindar-image-three.esm.js";
-
-    async function startAR() {
-      const mindarThree = new MindARThree({
-        container: document.body,
-        imageTargetSrc: "./targets.mind",
-        uiScanning: true,
-        uiLoading: true,
-      });
-
-      const { renderer, scene, camera } = mindarThree;
-
-      // ライト
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      scene.add(light);
-
-      // ターゲット 0 番にアンカー
-      const anchor = mindarThree.addAnchor(0);
-
-      // 赤い板（認識確認用）
-      const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 0.6),
-        new THREE.MeshBasicMaterial({ color: 0xff4444 })
-      );
-      plane.position.set(0, 0.1, 0);
-      anchor.group.add(plane);
-
-      // 開始
-      await mindarThree.start();
-
-      renderer.setAnimationLoop(() => {
-        renderer.render(scene, camera);
-      });
-    }
-
-    startAR().catch(err => {
-      alert("起動エラー: " + err);
-      console.error(err);
-    });
-  </script>
+<button id="b">カメラテスト</button>
+<script>
+document.getElementById("b").onclick = async () => {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: true });
+    alert("カメラOK");
+    s.getTracks().forEach(t => t.stop());
+  } catch(e) {
+    alert("カメラNG: " + e.name);
+  }
+};
+</script>
 </body>
 </html>
